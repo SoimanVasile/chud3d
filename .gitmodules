@@ -1,0 +1,7 @@
+[submodule "generators/glad"]
+	path = generators/glad
+	url = git@github.com:Dav1dde/glad.git
+
+[submodule "generators/cglm"]
+    path = generators/cglm
+    url = git@github.com:recp/cglm.git

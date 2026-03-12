@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -Wextra -gdwarf
+CFLAGS=-Wall -Wextra -gdwarf -lm
 LFLAGS=-lglfw
 
 SRCS:=$(wildcard src/*.c)
@@ -10,7 +10,7 @@ LIB_OBJS:=$(patsubst %.c, ./%.o, $(notdir $(LIB_SRCS)))
 
 
 
-TARGET=terrea
+TARGET=chud3d
 
 
 all:$(TARGET)
