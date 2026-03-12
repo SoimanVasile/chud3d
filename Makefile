@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-Wall -Wextra -gdwarf -lm
-LFLAGS=-lglfw
+LFLAGS=-lglfw -lm
 
 SRCS:=$(wildcard src/*.c)
 OBJS:=$(patsubst src/%.c, ./%.o, $(SRCS))
