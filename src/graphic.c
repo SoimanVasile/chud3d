@@ -289,16 +289,21 @@ int run (){
 
     ParticleSystem* particleSys = particles_init();
     
-    for(int i = 0; i < MAX_PARTICLES; i++) {
+for(int i = 0; i < MAX_PARTICLES; i++) {
         vec3 pos = {
-            ((float)rand() / RAND_MAX) * 4.0f - 2.0f, 
-            ((float)rand() / RAND_MAX) * 2.0f + 1.0f,
+            ((float)rand() / RAND_MAX) * 4.0f - 2.0f,
+            ((float)rand() / RAND_MAX) * 4.0f - 2.0f,
             ((float)rand() / RAND_MAX) * 4.0f - 2.0f
         };
-        vec3 vel = {0.0f, 0.0f, 0.0f}; 
+        
+        vec3 vel = {
+            ((float)rand() / RAND_MAX) * 2.0f - 1.0f, 
+            ((float)rand() / RAND_MAX) * 2.0f - 1.0f, 
+            ((float)rand() / RAND_MAX) * 2.0f - 1.0f  
+        };
+        
         particles_add(particleSys, pos, vel, 0.05f, 1.0f); 
     }
-
     float particleQuad[] = {
         -0.5f, -0.5f,
          0.5f, -0.5f,

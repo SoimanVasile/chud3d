@@ -4,8 +4,8 @@
 #include <cglm/vec3.h>
 
 #define MAX_PARTICLES 1000
-#define GRAVITY -9.81f
-#define DAMPING 0.98f  
+#define GRAVITY 0.0f
+#define DAMPING 1.0f  
 #define COLLISION_THRESHOLD 0.01f
 
 typedef struct {

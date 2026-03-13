@@ -29,8 +29,8 @@ void particles_add(ParticleSystem* sys, vec3 pos, vec3 vel, float radius, float 
 }
 
 void particles_check_floor_collision(Particle* p) {
-    if (p->position[1] - p->radius < 0.0f) {
-        p->position[1] = p->radius;
+    if (p->position[1] - p->radius < -2.5f) {
+        p->position[1] = -2.5f + p->radius;
         p->velocity[1] = -p->velocity[1] * DAMPING;
         
         if (fabs(p->velocity[1]) < 0.1f) {
