@@ -4,8 +4,10 @@
 #include <cglm/vec3.h>
 #include <stdlib.h>
 #include "cglm/cglm.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "../vendor/stb_image.h"
 
-vec3 cameraPos = {0.0f, 0.0f, 3.0f};
+vec3 cameraPos = {-2.5f, 0.0f, 5.0f};
 vec3 cameraFront = {0.0f, 0.0f, -1.0f};
 
 vec3 cameraUp = {0.0f, 1.0f, 0.0f};
@@ -86,7 +88,7 @@ void processInput(GLFWwindow* window){
         glfwSetWindowShouldClose(window, 1);
     }
 
-    float cameraSpeed = 2.5f * deltaTime;
+    float cameraSpeed = 5.0f * deltaTime;
 
     vec3 temp;
 
@@ -135,13 +137,44 @@ int run (){
     }
 
     GLfloat vertices[] = {
-        -0.5f, -0.5f, 0.0f,      0.8f, 0.5f, 0.5f,
-        0.0, 0.5f, 0.0f,         0.5f, 1.0f, 0.5f,
-        0.5f, -0.5f, 0.0f,       0.3f, 0.5f, 0.9f,
+    -0.5f, -0.5f,  0.5f,   0.0f, 0.0f,
+         0.5f, -0.5f,  0.5f,   1.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,   1.0f, 1.0f,
+        -0.5f,  0.5f,  0.5f,   0.0f, 1.0f,
+
+         0.5f, -0.5f, -0.5f,   0.0f, 0.0f, 
+        -0.5f, -0.5f, -0.5f,   1.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f,   1.0f, 1.0f,
+         0.5f,  0.5f, -0.5f,   0.0f, 1.0f,
+
+        -0.5f, -0.5f, -0.5f,   0.0f, 0.0f,
+        -0.5f, -0.5f,  0.5f,   1.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f,   1.0f, 1.0f,
+        -0.5f,  0.5f, -0.5f,   0.0f, 1.0f,
+
+         0.5f, -0.5f,  0.5f,   0.0f, 0.0f,
+         0.5f, -0.5f, -0.5f,   1.0f, 0.0f,
+        0.5f,  0.5f, -0.5f,   1.0f, 1.0f,
+        0.5f,  0.5f,  0.5f,   0.0f, 1.0f,
+
+        -0.5f,  0.5f,  0.5f,   0.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,   1.0f, 0.0f,
+         0.5f,  0.5f, -0.5f,   1.0f, 1.0f,
+        -0.5f,  0.5f, -0.5f,   0.0f, 1.0f,
+
+        -0.5f, -0.5f, -0.5f,   0.0f, 0.0f,
+         0.5f, -0.5f, -0.5f,   1.0f, 0.0f,
+         0.5f, -0.5f,  0.5f,   1.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,   0.0f, 1.0f
     };
 
-    int indices[] = {
-        0, 1, 2,
+    unsigned int indices[] = {
+    0,  1,  2,  2,  3,  0, // Front
+         4,  5,  6,  6,  7,  4, // Back
+         8,  9, 10, 10, 11,  8, // Left
+        12, 13, 14, 14, 15, 12, // Right
+        16, 17, 18, 18, 19, 16, // Top
+        20, 21, 22, 22, 23, 20  // Bottom;
     };
 
     glfwMakeContextCurrent(window);
@@ -157,6 +190,7 @@ int run (){
     }
 
     glViewport(0,0, 1920, 1080);
+    glEnable(GL_DEPTH_TEST);
     
     char* vertexShaderSource = read_from_files("src/shader/shader.vert");
 
@@ -180,6 +214,30 @@ int run (){
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
+    unsigned int texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    int width, height, nrChannels;
+
+    stbi_set_flip_vertically_on_load(1);
+
+    unsigned char* data = stbi_load("src/shader/wood.jpg", &width, &height, &nrChannels, 0);
+
+    if (data){
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else{
+        printf("Failed to load texture!\n");
+    }
+
+    stbi_image_free(data);
+
     GLuint VAO, VBO, EBO;
 
     glGenVertexArrays(1, &VAO);
@@ -196,15 +254,17 @@ int run (){
 
     glBindVertexArray(VAO);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_TRUE, 6 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, 6 * sizeof(float), (void*)(3*sizeof(float)));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3*sizeof(float)));
     glEnableVertexAttribArray(1);
 
     glBindBuffer(GL_ARRAY_BUFFER,0);
     glBindVertexArray(0);
 
+    glUseProgram(shaderProgram);
+    glBindTexture(GL_TEXTURE_2D, texture);
     while (!glfwWindowShouldClose(window)){
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
@@ -212,14 +272,18 @@ int run (){
         
         processInput(window);
 
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glUseProgram(shaderProgram);
         mat4 model, view, projection;
         glm_mat4_identity(model);
         glm_mat4_identity(view);
         glm_mat4_identity(projection);
+
+        vec3 roomSize = {5.0f, 5.0f, 5.0f};
+
+        glm_scale(model, roomSize);
 
         glm_perspective(glm_rad(67.0f), 800.0f/600.0f, 0.1f, 100.0f, projection);
 
@@ -237,7 +301,7 @@ int run (){
         glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, (const GLfloat*)projection);
 
         glBindVertexArray(VAO);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(unsigned int), GL_UNSIGNED_INT, 0);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
