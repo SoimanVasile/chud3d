@@ -62,6 +62,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 }
 
 
+
 char* read_from_files(const char* file_name){
   FILE* file = fopen(file_name, "r");
 
@@ -81,6 +82,26 @@ char* read_from_files(const char* file_name){
 
   fclose(file);
   return content;
+}
+
+GLuint compileShader(const char* file_path, GLenum shaderType) {
+    char* shaderSource = read_from_files(file_path);
+    if (!shaderSource) return 0;
+
+    GLuint shader = glCreateShader(shaderType);
+    glShaderSource(shader, 1, (const char**)&shaderSource, NULL);
+    glCompileShader(shader);
+
+    int success;
+    char infoLog[512];
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(shader, 512, NULL, infoLog);
+        printf("ERROR COMPILING SHADER %s:\n%s\n", file_path, infoLog);
+    }
+
+    free(shaderSource);
+    return shader;
 }
 
 void processInput(GLFWwindow* window){
@@ -192,24 +213,23 @@ int run (){
     glViewport(0,0, 1920, 1080);
     glEnable(GL_DEPTH_TEST);
     
-    char* vertexShaderSource = read_from_files("src/shader/shader.vert");
+    GLuint vertexShader = compileShader("src/shader/shader.vert", GL_VERTEX_SHADER);
+    GLuint fragmentShader = compileShader("src/shader/shader.frag", GL_FRAGMENT_SHADER);
 
-    char* fragmentShaderSource = read_from_files("src/shader/shader.frag");
-
-    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, (const char**)&vertexShaderSource, NULL);
-    glCompileShader(vertexShader);
-
-
-    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, (const char**)&fragmentShaderSource, NULL);
-    glCompileShader(fragmentShader);
+    GLuint pVertShader = compileShader("src/shader/particle.vert", GL_VERTEX_SHADER);
+    GLuint pFragShader = compileShader("src/shader/particle.frag", GL_FRAGMENT_SHADER);
 
     GLuint shaderProgram = glCreateProgram();
 
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
+
+    GLuint particleShader = glCreateProgram();
+
+    glAttachShader(particleShader, pVertShader);
+    glAttachShader(particleShader, pFragShader);
+    glLinkProgram(particleShader);
 
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
@@ -265,6 +285,44 @@ int run (){
 
     glUseProgram(shaderProgram);
     glBindTexture(GL_TEXTURE_2D, texture);
+
+    vec3 translations[10000];
+    for(int i = 0; i < 10000; i++) {
+        float x = ((float)rand() / RAND_MAX) * 4.0f - 2.0f;
+        float y = ((float)rand() / RAND_MAX) * 4.0f - 2.0f;
+        float z = ((float)rand() / RAND_MAX) * 4.0f - 2.0f;
+        translations[i][0] = x;
+        translations[i][1] = y;
+        translations[i][2] = z;
+    }
+
+    float particleQuad[] = {
+        -0.5f, -0.5f,
+         0.5f, -0.5f,
+        -0.5f,  0.5f,
+         0.5f,  0.5f,
+    };
+
+    GLuint pVAO, pVBO, instanceVBO;
+    glGenVertexArrays(1, &pVAO);
+    glGenBuffers(1, &pVBO);
+    glGenBuffers(1, &instanceVBO);
+
+    glBindVertexArray(pVAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, pVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(particleQuad), particleQuad, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(translations), &translations[0], GL_STATIC_DRAW);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    
+    glVertexAttribDivisor(1, 1); 
+
+    glBindVertexArray(0);
     while (!glfwWindowShouldClose(window)){
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
@@ -302,6 +360,26 @@ int run (){
 
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(unsigned int), GL_UNSIGNED_INT, 0);
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        glUseProgram(particleShader); 
+
+        int pViewLoc = glGetUniformLocation(particleShader, "view");
+        int pProjLoc = glGetUniformLocation(particleShader, "projection");
+        glUniformMatrix4fv(pViewLoc, 1, GL_FALSE, (const GLfloat*)view);
+        glUniformMatrix4fv(pProjLoc, 1, GL_FALSE, (const GLfloat*)projection);
+
+        glBindVertexArray(pVAO);
+
+        glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+        glVertexAttribDivisor(1,1);
+        glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, 10000); 
+
+        glDisable(GL_BLEND);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
