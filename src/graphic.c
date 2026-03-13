@@ -6,6 +6,7 @@
 #include "cglm/cglm.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "../vendor/stb_image.h"
+#include "particles.h"
 
 vec3 cameraPos = {-2.5f, 0.0f, 5.0f};
 vec3 cameraFront = {0.0f, 0.0f, -1.0f};
@@ -286,14 +287,16 @@ int run (){
     glUseProgram(shaderProgram);
     glBindTexture(GL_TEXTURE_2D, texture);
 
-    vec3 translations[10000];
-    for(int i = 0; i < 10000; i++) {
-        float x = ((float)rand() / RAND_MAX) * 4.0f - 2.0f;
-        float y = ((float)rand() / RAND_MAX) * 4.0f - 2.0f;
-        float z = ((float)rand() / RAND_MAX) * 4.0f - 2.0f;
-        translations[i][0] = x;
-        translations[i][1] = y;
-        translations[i][2] = z;
+    ParticleSystem* particleSys = particles_init();
+    
+    for(int i = 0; i < MAX_PARTICLES; i++) {
+        vec3 pos = {
+            ((float)rand() / RAND_MAX) * 4.0f - 2.0f, 
+            ((float)rand() / RAND_MAX) * 2.0f + 1.0f,
+            ((float)rand() / RAND_MAX) * 4.0f - 2.0f
+        };
+        vec3 vel = {0.0f, 0.0f, 0.0f}; 
+        particles_add(particleSys, pos, vel, 0.05f, 1.0f); 
     }
 
     float particleQuad[] = {
@@ -316,19 +319,32 @@ int run (){
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
 
     glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(translations), &translations[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, MAX_PARTICLES * sizeof(vec3), NULL, GL_DYNAMIC_DRAW); 
+    
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    
-    glVertexAttribDivisor(1, 1); 
+    glVertexAttribDivisor(1, 1);
 
     glBindVertexArray(0);
+
+
     while (!glfwWindowShouldClose(window)){
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
         
         processInput(window);
+
+        particles_update(particleSys, deltaTime);
+
+        vec3 currentPositions[MAX_PARTICLES];
+
+        for(int i=0; i<particleSys->count; i++){
+            glm_vec3_copy(particleSys->particles[i].position, currentPositions[i]);
+        }
+
+        glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, particleSys->count * sizeof(vec3), currentPositions);
 
         glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -377,7 +393,7 @@ int run (){
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
         glVertexAttribDivisor(1,1);
-        glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, 10000); 
+        glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, particleSys->count); 
 
         glDisable(GL_BLEND);
 

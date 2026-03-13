@@ -7,6 +7,6 @@ uniform mat4 projection;
 
 void main()
 {
-    vec3 pos = vec3(aPos.x * 0.05, aPos.y * 0.05, 0.0) + aOffset;
+    vec3 pos = vec3(aPos.x * 0.02, aPos.y * 0.02, 0.0) + aOffset;
     gl_Position = projection * view * vec4(pos, 1.0);
 }
